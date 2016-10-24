@@ -12,31 +12,51 @@ def main(argv):
     """
     alphabet = None
     if len(argv) < 2:
-        print("Usage:\n\t./infocalc.py -w wordfile [alphabet file]")
-
+        print("Usage:\n\t./infocalc.py <flag> <argument>")
+        print("Valid flags:\n")
+        print("\t-a\tSpecify an alphabet file to use. Defaults to English.")
+        print("\t-i\tCalculate information content of a single string passed as the argument")
+        print("\t-I\tCalculate information content of a list of strings in a file passed as the argument")
+        print("\t-e\tCalculate the entropy of the alphabet specified with the -a flag. Defaults to English.")
+        print("\t-v\tVerbose printouts.")
     else:
         alphaname = None
-        if len(argv) > 2:
-            alphabet = readAlphabet(argv[2])
-            alphaname = argv[2]
+        verbose = False
+
+        # check for flags
+        if "-v" in argv:
+            verbose = True
+
+        if "-a" in argv:
+            # get the alphabet file from the argv index right after the -a flag
+            alphaname = argv[argv.index("-a") + 1]
+            alphabet = readAlphabet(alphaname, verbose = verbose)
         else:
             defaultAlpha = "EnglishAlphabet.txt"
             alphaname = defaultAlpha
-            alphabet = readAlphabet(defaultAlpha)
+            alphabet = readAlphabet(defaultAlpha, verbose = verbose)
 
-        wordlist = readWords(argv[1])
+        if "-i" in argv:
+            word = argv[argv.index("-i") + 1]
+            info = calcInfo(word, alphabet, verbose = verbose)
+            print("Information of %s using %s: %f" %(word, alphaname, info))
 
-        """
-        for word in wordlist:
-            entropy = calcEntropy(word, alphabet)
-            print("Entropy of %s: %f" %(word, entropy))
-            """
+        if "-I" in argv:
+            wordfile = argv[argv.index("-I") + 1]
+            wordlist = readWords(wordfile)
+            print("Information of %s using %s:" %(wordfile, alphaname))
+            for word in wordlist:
+                info = calcInfo(word, alphabet, verbose = verbose)
+                print("%s: %f" %(word, info))
 
-        alphaEntropy = alphabetEntropy(alphabet)
-        print("Entropy of %s: %f" %(alphaname, alphaEntropy))
+        if "-e" in argv:
+            alphaEntropy = alphabetEntropy(alphabet, verbose = verbose)
+            print("Entropy of %s: %f" %(alphaname, alphaEntropy))
+        
 
-def readAlphabet(alphaFileString):
-    print("Reading alphabet from %s" %alphaFileString)
+def readAlphabet(alphaFileString, verbose = False):
+    if verbose:
+        print("Reading alphabet from %s" %alphaFileString)
     with open(alphaFileString, "r") as alphaFile:
         alphabet = dict(line.rstrip('\n').split(',') for line in alphaFile)
 
@@ -45,48 +65,51 @@ def readAlphabet(alphaFileString):
 
     return alphabet
 
-def readWords(wordFileString):
-    print("Reading words from %s" %wordFileString)
+def readWords(wordFileString, verbose = False):
+    if verbose:
+        print("Reading words from %s" %wordFileString)
 
     with open(wordFileString, "r") as wordFile:
         wordlist = [line.rstrip('\n') for line in wordFile]
 
     return wordlist
 
-def calcEntropy(messageString, alphabet):
+def calcEntropy(messageString, alphabet, verbose = False):
     """
         Calculate the entropy (information content) of the given message
         using the probabilities of each character in the given alphabet.
     """
+    if verbose:
+        print("Calculating entropy of %s" %alphabet)
+
     entropy = 0.0
 
     for ch in messageString:
         p = alphabet[ch]
-        print(ch, p)
-
-        #print(p * math.log(p,2))
         entropy += -p*math.log2(p)
-        #print("Entropy: %f" %entropy)
+
+        if verbose:
+            print(ch, p)
+            print("Entropy: %f" %entropy)
 
     return entropy
 
-def CalcInfo(messageString, alphabet):
+def calcInfo(messageString, alphabet, verbose = False):
 
     information = 0.0
 
     for ch in messageString:
         p = alphabet[ch]
 
-        information += - math.log2(1/p)
+        information += - math.log2(p)
 
     return information
 
-def alphabetEntropy(alphabet):
+def alphabetEntropy(alphabet, verbose = False):
 
     entropy = 0.0
     for letter in alphabet:
         p = alphabet[letter]
-        print(p)
         if p == 0.0:
             continue
         else:
