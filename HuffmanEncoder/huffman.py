@@ -23,9 +23,9 @@ class HuffmanTree():
         while len(huffman_nodes) > 1:
             print("len(huffman_nodes) = %d" %len(huffman_nodes))
 
-            # pop the r-lowest weight nodes (symbols) from the list of nodes.
+            # pop the two lowest weight nodes (symbols) from the list of nodes.
             children = []
-            for n in range(0,self.radix):
+            for n in range(0,2):
                 children.append(huffman_nodes.pop(0))
             
             # make an empty parent node
@@ -79,12 +79,29 @@ class HuffmanTree():
 
         return
 
+    def binary_traverse_and_encode(self, start_node):
+        """
+            Traverse the constructed Huffman tree and assign binary code words for each symbol.
+        """
+        while len(start_node.children) > 0:
+            for i, child in enumerate(start_node.children):
+                if start_node.parent is None:
+                    child.code.append(i)
+                else:
+                    child.code.append(start_node.code)
+                    child.code.append(i)
+                self.binary_traverse_and_encode(child)
+        print("%s: %s" %(start_node.symbol, start_node.code))
+        return
+
+
+
 class HuffmanNode():
 
     def __init__(self, symbol, weight, parent = None, children = [], level = None, levelnode = None):
         self.symbol = symbol
         self.weight = weight
-        self.code = None
+        self.code = []
         self.code_length = None
 
         # tree location info
@@ -175,14 +192,18 @@ class HuffmanEncoder():
         # create a HuffmanTree object to store the tree relations of the HuffmanNodes
         huff_tree = HuffmanTree(radix = 2, root_node = None)
 
-        # make the two lowest-probability symbols siblings
-
+        # build the huffman tree
         huff_tree.build_huffman_tree(self.huffman_nodes)
 
+        # assign codewords to the nodes in the huffman tree
+        huff_tree.binary_traverse_and_encode(huff_tree.root_node)
+
         # traverse the tree we just created
+        """
         print(huff_tree.root_node)
         print("\tSymbol\t|\tWeight\t|\tLevel\t|\tParent\t|")
         huff_tree.traverse_and_callback(huff_tree.root_node)
+        """
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
