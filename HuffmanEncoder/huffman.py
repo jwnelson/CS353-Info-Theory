@@ -11,6 +11,7 @@ class HuffmanTree():
         self.radix = radix
         self.root_node = root_node
         self.nodes = []
+        self.encoding = {}
 
     def build_huffman_tree(self, huffman_nodes, level = 0):
         """
@@ -75,23 +76,31 @@ class HuffmanTree():
                 if callback != None:
                     callback(child)
                 self.traverse_and_callback(child, callback = callback)
-
+        
 
         return
 
-    def binary_traverse_and_encode(self, start_node):
+    def binary_traverse_and_encode(self, node):
         """
-            Traverse the constructed Huffman tree and assign binary code words for each symbol.
+            Traverse the Huffman tree from the given node and assign binary code words for each symbol.
         """
-        while len(start_node.children) > 0:
-            for i, child in enumerate(start_node.children):
-                if start_node.parent is None:
+        #print("In " + node.symbol)
+        if len(node.children) > 0:
+            for i, child in enumerate(node.children):
+                if node.parent is None:
                     child.code.append(i)
                 else:
-                    child.code.append(start_node.code)
+                    for e in node.code:
+                        child.code.append(e)
                     child.code.append(i)
                 self.binary_traverse_and_encode(child)
-        print("%s: %s" %(start_node.symbol, start_node.code))
+        else:
+            if node.parent is not None:
+                node.code = ''.join(str(e) for e in node.code)
+                self.encoding[node.symbol] = node.code
+                print("%s: %s" %(node.symbol, node.code))
+
+        #print("Out " + node.symbol)
         return
 
 
