@@ -31,10 +31,27 @@ class HuffmanTree():
                 if len(huffman_nodes) == 2:
                     print("We should stop after this iteration")
 
-            # pop the two lowest weight nodes (symbols) from the list of nodes.
+            # pop the lowest weight nodes (symbols) from the list of nodes.
             children = []
-            for n in range(0,2):
-                children.append(huffman_nodes.pop(0))
+            # if this is the first grouping of nodes and the radix is greater than 2, we must
+            # pick a first cluster size s such that (N - s)/(r - 1) is an integer, where N is
+            # the number of symbols in the symbol set, and r is the radix. See the paper by 
+            # Huffman (1952).
+            if (level == 0) and (self.radix > 2):
+                for s in range(self.radix, 1, -1):
+                    if (len(huffman_nodes) - s)%(self.radix-1) == 0:
+                        if self.verbose:
+                            print("Popping %d children" %s)
+
+                        for n in range(0,s):
+                            children.append(huffman_nodes.pop(0))
+                        break
+
+            else:
+                if self.verbose:
+                    print("Popping 2 children")
+                for n in range(0,self.radix):
+                    children.append(huffman_nodes.pop(0))
 
             if self.verbose:
                 print("huffman_nodes after popping children: ", [node.weight for node in huffman_nodes])
@@ -97,21 +114,36 @@ class HuffmanTree():
 
         return
 
-    def binary_traverse_and_encode(self, node):
+    def traverse_and_encode(self, node):
         """
-            Traverse the Huffman tree from the given node and assign binary code words for each symbol.
+            Traverse the Huffman tree from the given node and assign code words for each symbol.
         """
         #print("In " + node.symbol)
         if len(node.children) > 0:
+
+            # This is NOT a leaf node.
             for i, child in enumerate(node.children):
+
+                # Convert to alpha symbols if i exceeds 9
+                if i > 9:
+                    i = self._large_base_convert(i)
+
+                # consider the case where node is the root node. Assign initial codewords to each child.
                 if node.parent is None:
                     child.code.append(i)
+
+                # All other nodes besides the root fall under this. They all have parents. Good for them.
                 else:
+                    # The child inherits the parent's code
                     for e in node.code:
                         child.code.append(e)
+
+                    # The child also gets a new code symbol appended to the end.
                     child.code.append(i)
-                self.binary_traverse_and_encode(child)
+                self.traverse_and_encode(child)
         else:
+
+            # This IS a leaf node. In other words, this is the code of a distinct symbol. Yay!
             if node.parent is not None:
                 node.code = ''.join(str(e) for e in node.code)
                 self.encoding[node.symbol] = node.code
@@ -121,6 +153,11 @@ class HuffmanTree():
         #print("Out " + node.symbol)
         return
 
+    def _large_base_convert(self, number):
+        """
+            Utility function to map numbers greater than 9 to ascii characters starting with 10 -> 'a'
+        """
+        return chr((number-9) + (ord('a') - 1))
 
 
 class HuffmanNode():
@@ -166,7 +203,7 @@ class HuffmanEncoder():
             self.output_file = argv[argv.index('-o') + 1]
 
         if '-r' in argv:
-            self.radix = argv[argv.index('-r') + 1]
+            self.radix = int(argv[argv.index('-r') + 1])
 
         # Read the problem definition into the dict symbols
         symbols = self._read_problem(self.input_file) #TODO - replace passing in filename with file prompt
@@ -244,7 +281,7 @@ class HuffmanEncoder():
         huff_tree.build_huffman_tree(self.huffman_nodes)
 
         # assign codewords to the nodes in the huffman tree
-        huff_tree.binary_traverse_and_encode(huff_tree.root_node)
+        huff_tree.traverse_and_encode(huff_tree.root_node)
 
         # sort the encoding alphabetically by symbol
         huff_tree.encoding = collections.OrderedDict(sorted(huff_tree.encoding.items()))
@@ -264,13 +301,11 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("""
             Usage: huffman.py symbol_file [-o output_file] [-r radix] [-v]\n
-                \tsymbol_file: File containing the symbols and associated weights (probabilities) in csv format.\n
-                \t-o output_file: Put the encoding output into output_file in csv format.\n
-                \t-r radix: Encode using the given radix. Defaults to radix = 2 (binary).\n
-                \t-v: Verbose mode. Prints out a lot of stuff.\n
+                symbol_file: File containing the symbols and associated weights (probabilities) in csv.
+                -o output_file: Put the encoding output into output_file in csv.
+                -r radix: Encode using the given radix. Defaults to radix = 2 (binary).
+                -v: Verbose mode. Prints out a lot of stuff.
             """)
-
-        print("Must pass a filename containing smybols and their frequency.")
     else:
         encoder = HuffmanEncoder(sys.argv[1:])
         encoder.huffman_encode()
