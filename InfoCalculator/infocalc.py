@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 import sys, os, math
 
 """
@@ -11,13 +11,14 @@ def main(argv):
 
     """
     alphabet = None
-    if len(argv) < 2:
+    if len(argv) < 2 or argv[1] == "help" or argv[1] == "-h":
         print("Usage:\n\t./infocalc.py <flag> <argument>")
         print("Valid flags:\n")
         print("\t-a\tSpecify an alphabet file to use. Defaults to English.")
         print("\t-i\tCalculate information content of a single string passed as the argument")
         print("\t-I\tCalculate information content of a list of strings in a file passed as the argument")
         print("\t-e\tCalculate the entropy of the alphabet specified with the -a flag. Defaults to English.")
+        print("\t-L\tCalculate average code word length of a code.")
         print("\t-v\tVerbose printouts.")
     else:
         alphaname = None
@@ -52,6 +53,13 @@ def main(argv):
         if "-e" in argv:
             alphaEntropy = alphabetEntropy(alphabet, verbose = verbose)
             print("Entropy of %s: %f" %(alphaname, alphaEntropy))
+
+        if "-L" in argv:
+            codeFile = argv[argv.index("-L") + 1]
+            code = readCode(codeFile, verbose)
+            acwl = calculate_acwl(code, verbose)
+
+            print("ACWL of %s: %f" %(codeFile.rstrip("."), acwl))
         
 
 def readAlphabet(alphaFileString, verbose = False):
@@ -64,6 +72,14 @@ def readAlphabet(alphaFileString, verbose = False):
         alphabet[key] = float(alphabet[key])
 
     return alphabet
+
+def readCode(codeFileString, verbose = False):
+    if verbose:
+        print("Reading code from %s" %codeFileString)
+    with open(codeFileString, "r") as codeFile:
+        code = dict(line.rstrip('\n').split(',') for line in codeFile)
+
+    return code
 
 def readWords(wordFileString, verbose = False):
     if verbose:
@@ -99,9 +115,15 @@ def calcInfo(messageString, alphabet, verbose = False):
     information = 0.0
 
     for ch in messageString:
-        p = alphabet[ch]
+        try:
+            p = alphabet[ch]
+            information += - math.log2(p)
+        except KeyError as ke:
+            print("Letter %c not in alphabet" %ch)
+            information = 0
+            break
 
-        information += - math.log2(p)
+        
 
     return information
 
@@ -116,6 +138,22 @@ def alphabetEntropy(alphabet, verbose = False):
             entropy += -p*math.log2(p)
 
     return entropy
+
+def calculate_acwl(code, verbose = False):
+    """
+        Calculate the average code word length of a code passed
+        in as a csv with the symbols in column 0 and codewords in col 1.
+    """
+    cwlsum = 0
+    for symbol in code:
+        cwlsum += len(code[symbol])
+    code_size = len(code)
+
+    if verbose:
+        print("CWL Sum: %d" %cwlsum)
+        print("Code Size: %d" %code_size)
+
+    return (float(cwlsum)/float(code_size))
 
 if __name__ == "__main__":
     main(sys.argv[0:])
